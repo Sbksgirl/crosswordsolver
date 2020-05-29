@@ -39,133 +39,118 @@
             </header>
 
             <div id="app"></div>
+        </main>
 
-            <script>
-                // Select the <div> to display the data.
-                const app = document.querySelector('#app');
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.min.js"></script>
+        <script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+        <script>
+            const router = new VueRouter({
+                mode: 'history',
+                routes: []
+            });
 
-                /**
-                 * Sanitize and encode all HTML in a string to prevent XSS attacks.
-                 * link: https://vanillajstoolkit.com/helpers/sanitizehtml/
-                 * @param  {String} str The user-submitted string.
-                 * @return {String} str The sanitized string.
-                 */
-                const sanitizeHTML = function (string) {
-                    const temp = document.createElement('div');
-                    temp.textContent = string;
-                    return temp.innerHTML;
-                };
-
-                /**
-                 * Get the URL parameters.
-                 * link: https://vanillajstoolkit.com/helpers/getparams/
-                 * @param  {String} url The page URL.
-                 * @return {Object}     The page URL parameters.
-                 */
-                const getParams = function (url) {
-                    const params = {};
-                    const parser = document.createElement('a');
-                    parser.href = url || window.location.href;
-                    const query = parser.search.substring(1);
-                    const vars = query.split('&');
-
-                    if (vars.length < 1) {
-                        return params;
+            new Vue({
+                router,
+                el: '#app',
+                data() {
+                    return {
+                        info: null,
+                        loading: true,
+                        errored: false
                     }
+                },
+                mounted() {
+                    /**
+                     * Sanitize and encode all HTML in a string to prevent XSS attacks.
+                     * link: https://vanillajstoolkit.com/helpers/sanitizehtml/
+                     * param  {String} str The user-submitted string.
+                     * return {String} str The sanitized string.
+                     */
+                    const sanitizeHTML = function (string) {
+                        const temp = document.createElement('div');
+                        temp.textContent = string;
+                        return temp.innerHTML;
+                    };
 
-                    for (let i = 0; i < vars.length; i++) {
-                        const pair = vars[i].split('=');
-                        params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
-                    }
-
-                    return params;
-                };
-
-                // Assign URL parameters to constant.
-                const params = getParams();
-
-                // Update the DOM when the API is down.
-                const renderNoResults = function () {
-                    app.innerHTML = `
-                        <section id="results" class="word-list wrap">
-                            <h2>Sorry, No Results</h2>
-                            <p>We\'re not able to retrieve any words that match the provided clues, please try again.</p>
-                        </section>
-                    `;
-                };
-
-                // Update the DOM when the API call is successful.
-                const renderResults = function (results) {
-                    // If there's no results, display a message.
-                    if (results.length < 1) {
-                        renderNoResults();
-                        return;
-                    }
-
-                    // Define the list items.
-                    const wordList = results.map(function (result) {
-                        if (result.defs) {
-                            return `
-                                <li>
-                                    <details>
-                                        <summary>${sanitizeHTML(result.word)}</summary>
-                                        <p>${sanitizeHTML(result.defs.join('; '))}</p>
-                                    </details>
-                                </li>
-                            `;
-                        } else {
-                            return `<li>${sanitizeHTML(result.word)}</li>`;
-                        }
-                    }).join('');
-
-                    const wordCount = params['sp'].length > 0 ? params['sp'].length + ' letter word' : 'No word specified';
-
-                    // Update the DOM.
-                    app.innerHTML = `
-                    <section id="results" class="word-list wrap">
-                        <h2>Word Suggestions</h2>
-                        <p class="clue"><span>Clue:</span> ${params['ml'].split('+').join(' ')}</p>
-                        <p class="word">${wordCount}</p>
-                        <ol>${wordList}</ol>
-                    </section>
-                    `;
-
-                    // Auto scroll to results section.
-                    const anchor = document.querySelector('#results');
-                    anchor.scrollIntoView();
-                }
-
-                // Check if URL contains ISBN parameter.
-                if (params['ml'] || params['sp']) {
-                    const api = `https://api.datamuse.com/words?ml=${params['ml']}&sp=${params['sp']}&md=d&max=20`;
-
-                    // Make API call.
-                    fetch(api).then(function (response) {
-                        // The API call was successful.
-                        if (response.ok) {
-                            // Return the JSON string promise.
-                            return response.json();
-                        }
-                        // Otherwise, reject.
-                        return Promise.reject(response);
-                    }).then(function (data) {
-                        // Render the data into the DOM.
-                        renderResults(data);
-                    }).catch(function (error) {
-                        // If there's an error, log it.
-                        console.warn(error);
-
-                        // Display error message.
-                        app.innerHTML = `
+                    // Update the DOM when the API is down.
+                    const renderNoResults = () => {
+                        this.$el.innerHTML = `
                             <section id="results" class="word-list wrap">
-                                <h2>There was an Error</h2>
-                                <p>We\'re not able to retrieve this information at the moment, please try again later.</p>
+                                <h2>Sorry, No Results</h2>
+                                <p>We\'re not able to retrieve any words that match the provided clues, please try again.</p>
                             </section>
                         `;
-                    });
+                    };
+
+                    // Update the DOM when the API call is successful.
+                    const renderResults = results => {
+                        // If there's no results, display a message.
+                        if (results.length < 1) {
+                            renderNoResults();
+                            return;
+                        }
+
+                        // Define the list items.
+                        const wordList = results.map(result => {
+                            if (result.defs) {
+                                return `
+                                    <li>
+                                        <details>
+                                            <summary>${sanitizeHTML(result.word)}</summary>
+                                            <p>${sanitizeHTML(result.defs.join('; '))}</p>
+                                        </details>
+                                    </li>
+                                `;
+                            } else {
+                                return `<li>${sanitizeHTML(result.word)}</li>`;
+                            }
+                        }).join('');
+
+                        const wordCount = this.$route.query.sp.length > 0 ? this.$route.query.sp.length + ' letter word' : 'No word specified';
+
+                        // Update the DOM.
+                        this.$el.innerHTML = `
+                        <section id="results" class="word-list wrap">
+                            <h2>Word Suggestions</h2>
+                            <p class="clue"><span>Clue:</span> ${this.$route.query.ml.split('+').join(' ')}</p>
+                            <p class="word">${wordCount}</p>
+                            <ol>${wordList}</ol>
+                        </section>
+                        `;
+
+                        // Auto scroll to results section.
+                        const anchor = document.querySelector('#results');
+                        anchor.scrollIntoView();
+                    }
+
+                    if (this.$route.query.ml || this.$route.query.sp) {
+                        const api = 'https://api.datamuse.com/words?ml=' + this.$route.query.ml + '&sp=' + this.$route.query.sp + '&md=d&max=20';
+
+                        axios.get(api).then(response => {
+                            // Add the response data from the API call into the info object.
+                            this.info = response.data;
+
+                            // Render the data into the DOM.
+                            renderResults(this.info);
+                        }).catch(error => {
+                            // If there's an error, log it.
+                            console.warn(error);
+
+                            // Display error message.
+                            this.$el.innerHTML = `
+                                <section id="results" class="word-list wrap">
+                                    <h2>There was an Error</h2>
+                                    <p>We\'re not able to retrieve this information at the moment, please try again later.</p>
+                                </section>
+                            `;
+                        }).finally(() => {
+                            this.loading = false;
+                        });
+                    }
                 }
-            </script>
-        </main>
+            });
+        </script>
     </body>
 
 </html>
