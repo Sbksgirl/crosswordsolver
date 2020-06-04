@@ -143,8 +143,7 @@ label {
 	margin-bottom: 5px;
 }
 
-input,
-button {
+input {
 	width: 100%;
 }
 
@@ -161,6 +160,7 @@ input {
 }
 
 button {
+	width: 47%;
 	font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
 	text-transform: uppercase;
 	font-size: 16px;
@@ -171,6 +171,11 @@ button {
 	padding: 12px 20px;
 	cursor: pointer;
 	margin-top: 5px;
+}
+
+#clear {
+	background-color: darkgray;
+	float: right;
 }
 
 /* Word List Component */
